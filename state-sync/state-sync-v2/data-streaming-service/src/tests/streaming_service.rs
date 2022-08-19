@@ -1,6 +1,7 @@
 // Copyright (c) Aptos
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::streaming_client::NotificationAndFeedback;
 use crate::{
     data_notification::DataPayload,
     error::Error,
@@ -94,8 +95,11 @@ async fn test_notifications_state_values_multiple_streams() {
                     // Terminate the stream
                     streaming_client
                         .terminate_stream_with_feedback(
-                            data_notification.notification_id,
-                            NotificationFeedback::InvalidPayloadData,
+                            stream_listener.data_stream_id,
+                            Some(NotificationAndFeedback::new(
+                                data_notification.notification_id,
+                                NotificationFeedback::InvalidPayloadData,
+                            )),
                         )
                         .await
                         .unwrap();
@@ -259,8 +263,11 @@ async fn test_notifications_continuous_outputs_multiple_streams() {
                     // Terminate the stream
                     streaming_client
                         .terminate_stream_with_feedback(
-                            data_notification.notification_id,
-                            NotificationFeedback::InvalidPayloadData,
+                            stream_listener.data_stream_id,
+                            Some(NotificationAndFeedback::new(
+                                data_notification.notification_id,
+                                NotificationFeedback::InvalidPayloadData,
+                            )),
                         )
                         .await
                         .unwrap();
@@ -454,8 +461,11 @@ async fn test_notifications_epoch_ending_multiple_streams() {
                     // Terminate the stream
                     streaming_client
                         .terminate_stream_with_feedback(
-                            data_notification.notification_id,
-                            NotificationFeedback::InvalidPayloadData,
+                            stream_listener.data_stream_id,
+                            Some(NotificationAndFeedback::new(
+                                data_notification.notification_id,
+                                NotificationFeedback::InvalidPayloadData,
+                            )),
                         )
                         .await
                         .unwrap();
@@ -695,8 +705,11 @@ async fn test_notifications_transactions_multiple_streams() {
                     // Terminate the stream
                     streaming_client
                         .terminate_stream_with_feedback(
-                            data_notification.notification_id,
-                            NotificationFeedback::InvalidPayloadData,
+                            stream_listener.data_stream_id,
+                            Some(NotificationAndFeedback::new(
+                                data_notification.notification_id,
+                                NotificationFeedback::InvalidPayloadData,
+                            )),
                         )
                         .await
                         .unwrap();
@@ -1015,8 +1028,11 @@ async fn test_terminate_complete_stream() {
             DataPayload::EndOfStream => {
                 let result = streaming_client
                     .terminate_stream_with_feedback(
-                        data_notification.notification_id,
-                        NotificationFeedback::InvalidPayloadData,
+                        stream_listener.data_stream_id,
+                        Some(NotificationAndFeedback::new(
+                            data_notification.notification_id,
+                            NotificationFeedback::InvalidPayloadData,
+                        )),
                     )
                     .await;
                 assert_ok!(result);
@@ -1050,8 +1066,11 @@ async fn test_terminate_stream() {
     // Terminate the stream
     let result = streaming_client
         .terminate_stream_with_feedback(
-            data_notification.notification_id,
-            NotificationFeedback::InvalidPayloadData,
+            stream_listener.data_stream_id,
+            Some(NotificationAndFeedback::new(
+                data_notification.notification_id,
+                NotificationFeedback::InvalidPayloadData,
+            )),
         )
         .await;
     assert_ok!(result);

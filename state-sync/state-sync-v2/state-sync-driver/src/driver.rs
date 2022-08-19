@@ -27,7 +27,9 @@ use aptos_types::waypoint::Waypoint;
 use consensus_notifications::{
     ConsensusCommitNotification, ConsensusNotification, ConsensusSyncNotification,
 };
-use data_streaming_service::streaming_client::{DataStreamingClient, NotificationFeedback};
+use data_streaming_service::streaming_client::{
+    DataStreamingClient, NotificationAndFeedback, NotificationFeedback,
+};
 use event_notifications::EventSubscriptionService;
 use futures::StreamExt;
 use mempool_notifications::MempoolNotificationSender;
@@ -178,7 +180,7 @@ impl<
         loop {
             ::futures::select! {
                 notification = self.client_notification_listener.select_next_some() => {
-                    self.handle_client_notification(notification);
+                    self.handle_client_notification(notification).await;
                 },
                 notification = self.commit_notification_listener.select_next_some() => {
                     self.handle_commit_notification(notification).await;
@@ -355,7 +357,7 @@ impl<
     }
 
     /// Handles a client notification sent by the driver client
-    fn handle_client_notification(&mut self, notification: DriverNotification) {
+    async fn handle_client_notification(&mut self, notification: DriverNotification) {
         debug!(LogSchema::new(LogEntry::ClientNotification)
             .message("Received a notify bootstrap notification from the client!"));
         metrics::increment_counter(
@@ -371,6 +373,7 @@ impl<
         if let Err(error) = self
             .bootstrapper
             .subscribe_to_bootstrap_notifications(notifier_channel)
+            .await
         {
             error!(LogSchema::new(LogEntry::ClientNotification)
                 .error(&error)
@@ -412,7 +415,10 @@ impl<
         if self.bootstrapper.is_bootstrapped() {
             if let Err(error) = self
                 .continuous_syncer
-                .terminate_active_stream(notification_id, notification_feedback)
+                .terminate_active_stream(Some(NotificationAndFeedback::new(
+                    notification_id,
+                    notification_feedback,
+                )))
                 .await
             {
                 panic!(
@@ -422,7 +428,10 @@ impl<
             }
         } else if let Err(error) = self
             .bootstrapper
-            .terminate_active_stream(notification_id, notification_feedback)
+            .terminate_active_stream(Some(NotificationAndFeedback::new(
+                notification_id,
+                notification_feedback,
+            )))
             .await
         {
             panic!(
@@ -462,7 +471,7 @@ impl<
         // If the sync request was successfully handled, reset the continuous syncer
         // so that in the event another sync request occurs, we have a fresh state.
         if !self.active_sync_request() {
-            self.continuous_syncer.reset_active_stream();
+            self.continuous_syncer.reset_active_stream(None).await?;
             self.storage_synchronizer.finish_chunk_executor(); // Consensus is now in control
         }
         Ok(())
@@ -487,7 +496,7 @@ impl<
     /// genesis waypoints will be automatically marked as bootstrapped. This
     /// helps in the case of single node deployments, where there are no peers
     /// and state sync is trivial.
-    fn check_auto_bootstrapping(&mut self) {
+    async fn check_auto_bootstrapping(&mut self) {
         if !self.bootstrapper.is_bootstrapped()
             && self.is_validator()
             && self.driver_configuration.waypoint.version() == 0
@@ -505,7 +514,7 @@ impl<
                         info!(LogSchema::new(LogEntry::AutoBootstrapping).message(
                             "Passed the connection deadline! Auto-bootstrapping the validator!"
                         ));
-                        if let Err(error) = self.bootstrapper.bootstrapping_complete() {
+                        if let Err(error) = self.bootstrapper.bootstrapping_complete().await {
                             error!(LogSchema::new(LogEntry::AutoBootstrapping)
                                 .error(&error)
                                 .message("Failed to mark bootstrapping as complete!"));
@@ -527,7 +536,7 @@ impl<
             trace!(LogSchema::new(LogEntry::Driver).message(
                 "The global data summary is empty! It's likely that we have no active peers."
             ));
-            return self.check_auto_bootstrapping();
+            return self.check_auto_bootstrapping().await;
         }
 
         // Check the progress of any sync requests

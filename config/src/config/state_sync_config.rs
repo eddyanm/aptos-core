@@ -162,7 +162,7 @@ impl Default for DataStreamingServiceConfig {
             max_concurrent_state_requests: 4,
             max_data_stream_channel_sizes: 1000,
             max_request_retry: 3,
-            max_notification_id_mappings: 2000,
+            max_notification_id_mappings: 500,
             progress_check_interval_ms: 100,
         }
     }

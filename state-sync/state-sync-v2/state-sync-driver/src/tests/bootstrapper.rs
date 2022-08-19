@@ -26,11 +26,13 @@ use aptos_types::{
     waypoint::Waypoint,
 };
 use claim::{assert_matches, assert_none, assert_ok};
+use data_streaming_service::streaming_client::NotificationAndFeedback;
 use data_streaming_service::{
     data_notification::{DataNotification, DataPayload},
     streaming_client::NotificationFeedback,
 };
 use futures::{channel::oneshot, FutureExt};
+use mockall::predicate::always;
 use mockall::{predicate::eq, Sequence};
 use std::sync::Arc;
 
@@ -50,6 +52,7 @@ async fn test_bootstrap_genesis_waypoint() {
     let (bootstrap_notification_sender, bootstrap_notification_receiver) = oneshot::channel();
     bootstrapper
         .subscribe_to_bootstrap_notifications(bootstrap_notification_sender)
+        .await
         .unwrap();
 
     // Create a global data summary where only epoch 0 has ended
@@ -93,6 +96,7 @@ async fn test_bootstrap_immediate_notification() {
     let (bootstrap_notification_sender, bootstrap_notification_receiver) = oneshot::channel();
     bootstrapper
         .subscribe_to_bootstrap_notifications(bootstrap_notification_sender)
+        .await
         .unwrap();
     verify_bootstrap_notification(bootstrap_notification_receiver);
 }
@@ -120,6 +124,7 @@ async fn test_bootstrap_no_notification() {
     let (bootstrap_notification_sender, bootstrap_notification_receiver) = oneshot::channel();
     bootstrapper
         .subscribe_to_bootstrap_notifications(bootstrap_notification_sender)
+        .await
         .unwrap();
 
     // Drive progress
@@ -219,8 +224,11 @@ async fn test_data_stream_state_values() {
     mock_streaming_client
         .expect_terminate_stream_with_feedback()
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::InvalidPayloadData),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::InvalidPayloadData,
+            ))),
         )
         .return_const(Ok(()));
 
@@ -286,8 +294,11 @@ async fn test_data_stream_transactions() {
     mock_streaming_client
         .expect_terminate_stream_with_feedback()
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::InvalidPayloadData),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::InvalidPayloadData,
+            ))),
         )
         .return_const(Ok(()));
 
@@ -353,8 +364,11 @@ async fn test_data_stream_transaction_outputs() {
     mock_streaming_client
         .expect_terminate_stream_with_feedback()
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::EmptyPayloadData),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::EmptyPayloadData,
+            ))),
         )
         .return_const(Ok(()));
 
@@ -522,8 +536,11 @@ async fn test_snapshot_sync_existing_state() {
         .expect_terminate_stream_with_feedback()
         .times(1)
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::InvalidPayloadData),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::InvalidPayloadData,
+            ))),
         )
         .return_const(Ok(()))
         .in_sequence(&mut expectation_sequence);
@@ -815,8 +832,11 @@ async fn test_waypoint_mismatch() {
     mock_streaming_client
         .expect_terminate_stream_with_feedback()
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::PayloadProofFailed),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::PayloadProofFailed,
+            ))),
         )
         .return_const(Ok(()));
 

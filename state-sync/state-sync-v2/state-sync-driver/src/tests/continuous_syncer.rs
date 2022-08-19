@@ -22,10 +22,12 @@ use aptos_infallible::Mutex;
 use aptos_types::transaction::{TransactionOutputListWithProof, Version};
 use claim::assert_matches;
 use consensus_notifications::ConsensusSyncNotification;
+use data_streaming_service::streaming_client::NotificationAndFeedback;
 use data_streaming_service::{
     data_notification::{DataNotification, DataPayload},
     streaming_client::NotificationFeedback,
 };
+use mockall::predicate::always;
 use mockall::{predicate::eq, Sequence};
 use std::sync::Arc;
 use storage_service_types::Epoch;
@@ -140,8 +142,11 @@ async fn test_data_stream_transactions_with_target() {
     mock_streaming_client
         .expect_terminate_stream_with_feedback()
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::EmptyPayloadData),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::EmptyPayloadData,
+            ))),
         )
         .return_const(Ok(()));
 
@@ -220,8 +225,11 @@ async fn test_data_stream_transaction_outputs() {
     mock_streaming_client
         .expect_terminate_stream_with_feedback()
         .with(
-            eq(notification_id),
-            eq(NotificationFeedback::InvalidPayloadData),
+            always(),
+            eq(Some(NotificationAndFeedback::new(
+                notification_id,
+                NotificationFeedback::InvalidPayloadData,
+            ))),
         )
         .return_const(Ok(()));
 

@@ -44,7 +44,7 @@ use storage_service_types::responses::CompleteDataRange;
 pub fn create_data_stream_listener() -> (Sender<(), DataNotification>, DataStreamListener) {
     let (notification_sender, notification_receiver) =
         aptos_channel::new(QueueStyle::KLAST, 100, None);
-    let data_stream_listener = DataStreamListener::new(notification_receiver);
+    let data_stream_listener = DataStreamListener::new(0, notification_receiver);
 
     (notification_sender, data_stream_listener)
 }
