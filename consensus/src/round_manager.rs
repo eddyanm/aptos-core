@@ -399,7 +399,7 @@ impl RoundManager {
             let commit_round = self.block_store.commit_root().round();
             let ordered_round = self.block_store.ordered_root().round();
             let sync_or_not =
-                self.sync_only || ordered_round > self.back_pressure_limit() + commit_round;
+                self.sync_only || ordered_round > self.back_pressure_limit() * 10 + commit_round;
 
             counters::OP_COUNTERS
                 .gauge("sync_only")
